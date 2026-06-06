@@ -10,6 +10,7 @@ const autocompleteCache = new Map<
   string,
   Array<{ name: string; value: string }>
 >();
+const AUTOCOMPLETE_TIMEOUT_MS = 1200;
 
 client.once("clientReady", () => {
   console.log(`Logged in as ${client.user?.tag}`);
@@ -34,8 +35,6 @@ kazagumo.on("playerEmpty", (player) => {
 });
 
 client.on("interactionCreate", async (interaction) => {
-  const autocompleteTimeouts = new Map();
-
   if (interaction.isAutocomplete()) {
     if (interaction.commandName !== "play") return;
 
@@ -50,37 +49,39 @@ client.on("interactionCreate", async (interaction) => {
       return interaction.respond(cachedChoices);
     }
 
-    if (autocompleteTimeouts.has(interaction.user.id)) {
-      clearTimeout(autocompleteTimeouts.get(interaction.user.id));
-    }
-
-    const timeout = setTimeout(async () => {
-      try {
-        const result = await kazagumo.search(focused, {
+    try {
+      const result = await Promise.race([
+        kazagumo.search(focused, {
           requester: interaction.user,
-        });
+        }),
+        new Promise<null>((resolve) => {
+          setTimeout(() => resolve(null), AUTOCOMPLETE_TIMEOUT_MS);
+        }),
+      ]);
 
-        const choices = result.tracks.slice(0, 25).map((t) => ({
-          name: `${t.title} — ${t.author}`.slice(0, 100),
-          value: (t.uri ?? t.title).slice(0, 100),
-        }));
-
-        autocompleteCache.set(focused, choices);
-
-        if (!interaction.responded) {
-          await interaction.respond(choices);
-        }
-      } catch (error) {
-        console.error("Autocomplete search failed:", error);
-        if (!interaction.responded) {
-          await interaction.respond([]).catch(() => null);
-        }
-      } finally {
-        autocompleteTimeouts.delete(interaction.user.id);
+      if (!result) {
+        return interaction.respond([]);
       }
-    }, 400);
 
-    autocompleteTimeouts.set(interaction.user.id, timeout);
+      const choices = result.tracks.slice(0, 25).map((t) => ({
+        name: `${t.title} — ${t.author}`.slice(0, 100),
+        value: (t.uri ?? t.title).slice(0, 100),
+      }));
+
+      autocompleteCache.set(focused, choices);
+
+      if (autocompleteCache.size > 50) {
+        const firstKey = autocompleteCache.keys().next().value;
+        if (firstKey) {
+          autocompleteCache.delete(firstKey);
+        }
+      }
+
+      return interaction.respond(choices);
+    } catch (error) {
+      console.error("Autocomplete search failed:", error);
+      return interaction.respond([]).catch(() => null);
+    }
   }
 
   if (!interaction.isChatInputCommand()) return;
@@ -129,6 +130,21 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     await interaction.editReply(`Now playing: ${track.title}`);
+  }
+
+  if (interaction.commandName === "clear") {
+    const player = kazagumo.players.get(interaction.guildId!);
+
+    if (!player) {
+      return interaction.reply({
+        content: "No music is currently playing.",
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+
+    player.destroy();
+
+    await interaction.reply("Playback stopped and queue cleared.");
   }
 });
 

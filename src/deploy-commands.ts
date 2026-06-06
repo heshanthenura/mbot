@@ -18,6 +18,9 @@ if (guildId == "") {
 const commands = [
   new SlashCommandBuilder().setName("ping").setDescription("Replies with pong"),
   new SlashCommandBuilder()
+    .setName("clear")
+    .setDescription("Stops the music and clears the queue"),
+  new SlashCommandBuilder()
     .setName("play")
     .setDescription("Play a song")
     .addStringOption((option) =>
