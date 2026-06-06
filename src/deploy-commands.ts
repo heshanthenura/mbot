@@ -21,7 +21,10 @@ const commands = [
     .setName("play")
     .setDescription("Play a song")
     .addStringOption((option) =>
-      option.setName("query").setDescription("YouTube URL").setRequired(true),
+      option
+        .setName("query")
+        .setDescription("URL or Search Query")
+        .setRequired(true),
     ),
 ].map((cmd) => cmd.toJSON());
 
