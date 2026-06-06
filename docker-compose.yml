@@ -11,3 +11,16 @@ services:
       - ./plugins/:/opt/Lavalink/plugins/
     ports:
       - "127.0.0.1:2333:2333"
+
+  mbot:
+    image: node:18-alpine
+    container_name: mbot
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./:/app
+    environment:
+      BOT_TOKEN: your_token
+      CLIENT_ID: your_client_id
+      GUILD_ID: your_guild_id
+    command: sh -c "npm install && npm run build && npm run start"

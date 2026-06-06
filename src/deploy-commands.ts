@@ -41,9 +41,9 @@ async function deploy() {
   try {
     console.log("Deploying slash commands...");
 
-    //TODO: prod ekedi change karapannnnnnnnnnn
-    // await rest.put(Routes.applicationCommands(clientId), {
-    await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
+    // TODO: prod ekedi change karapannnnnnnnnnn
+    await rest.put(Routes.applicationCommands(clientId), {
+      // await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
       body: commands,
     });
 
