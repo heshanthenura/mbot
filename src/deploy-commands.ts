@@ -24,7 +24,8 @@ const commands = [
       option
         .setName("query")
         .setDescription("URL or Search Query")
-        .setRequired(true),
+        .setRequired(true)
+        .setAutocomplete(true),
     ),
 ].map((cmd) => cmd.toJSON());
 

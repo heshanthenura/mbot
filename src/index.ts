@@ -6,6 +6,10 @@ const client = new Client({
 });
 
 const kazagumo = createKazagumo(client);
+const autocompleteCache = new Map<
+  string,
+  Array<{ name: string; value: string }>
+>();
 
 client.once("clientReady", () => {
   console.log(`Logged in as ${client.user?.tag}`);
@@ -30,6 +34,55 @@ kazagumo.on("playerEmpty", (player) => {
 });
 
 client.on("interactionCreate", async (interaction) => {
+  const autocompleteTimeouts = new Map();
+
+  if (interaction.isAutocomplete()) {
+    if (interaction.commandName !== "play") return;
+
+    const focused = interaction.options.getFocused();
+
+    if (typeof focused !== "string" || focused.length === 0) {
+      return interaction.respond([]);
+    }
+
+    const cachedChoices = autocompleteCache.get(focused);
+    if (cachedChoices) {
+      return interaction.respond(cachedChoices);
+    }
+
+    if (autocompleteTimeouts.has(interaction.user.id)) {
+      clearTimeout(autocompleteTimeouts.get(interaction.user.id));
+    }
+
+    const timeout = setTimeout(async () => {
+      try {
+        const result = await kazagumo.search(focused, {
+          requester: interaction.user,
+        });
+
+        const choices = result.tracks.slice(0, 25).map((t) => ({
+          name: `${t.title} — ${t.author}`.slice(0, 100),
+          value: (t.uri ?? t.title).slice(0, 100),
+        }));
+
+        autocompleteCache.set(focused, choices);
+
+        if (!interaction.responded) {
+          await interaction.respond(choices);
+        }
+      } catch (error) {
+        console.error("Autocomplete search failed:", error);
+        if (!interaction.responded) {
+          await interaction.respond([]).catch(() => null);
+        }
+      } finally {
+        autocompleteTimeouts.delete(interaction.user.id);
+      }
+    }, 400);
+
+    autocompleteTimeouts.set(interaction.user.id, timeout);
+  }
+
   if (!interaction.isChatInputCommand()) return;
 
   if (interaction.commandName === "ping") {
@@ -62,8 +115,6 @@ client.on("interactionCreate", async (interaction) => {
     const result = await kazagumo.search(query, {
       requester: interaction.user,
     });
-
-    console.log(result);
 
     if (!result.tracks.length) {
       return interaction.editReply("No results found");
