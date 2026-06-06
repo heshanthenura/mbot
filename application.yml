@@ -62,7 +62,9 @@ plugins:
       - WEB
       - ANDROID_VR
       - WEBEMBEDDED
-
+    oauth:
+      enabled: true
+      refreshToken: your token here
 metrics:
   prometheus:
     enabled: false
