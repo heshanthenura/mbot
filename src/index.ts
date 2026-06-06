@@ -16,10 +16,45 @@ client.once("clientReady", () => {
   console.log(`Logged in as ${client.user?.tag}`);
 });
 
-kazagumo.on("playerEmpty", (player) => {
+kazagumo.on("playerEmpty", async (player) => {
   if (!player.textId) return;
 
   const channel = client.channels.cache.get(player.textId);
+
+  const lastTrack = player.data.get("lastTrack");
+  const requester = player.data.get("lastRequester") ?? null;
+
+  try {
+    const lastIdentifier = lastTrack?.identifier;
+
+    if (!lastIdentifier) {
+      throw new Error("No last track identifier available for autoplay");
+    }
+
+    const mixUrl = `https://www.youtube.com/watch?v=${lastIdentifier}&list=RD${lastIdentifier}`;
+
+    const result = await kazagumo.search(mixUrl, {
+      requester,
+    });
+
+    if (!result?.tracks.length) return;
+
+    const nextTrack =
+      result.tracks.find(
+        (track) => track.identifier !== lastTrack.identifier,
+      ) || result.tracks[0];
+
+    if (nextTrack) {
+      player.data.set("lastTrack", nextTrack);
+      player.queue.add(nextTrack);
+      if (!player.playing && !player.paused) {
+        await player.play();
+      }
+      return;
+    }
+  } catch (error) {
+    console.error("Autoplay failed:", error);
+  }
 
   if (!channel?.isSendable()) return;
 
@@ -122,6 +157,8 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     const track = result.tracks[0];
+    player.data.set("lastTrack", track);
+    player.data.set("lastRequester", interaction.user);
 
     player.queue.add(track);
 
@@ -142,9 +179,24 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
 
-    player.destroy();
+    player.queue.clear();
 
     await interaction.reply("Playback stopped and queue cleared.");
+  }
+
+  if (interaction.commandName === "bye") {
+    const player = kazagumo.players.get(interaction.guildId!);
+
+    if (!player) {
+      return interaction.reply({
+        content: "No music is currently playing.",
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+
+    player.destroy();
+
+    await interaction.reply("Goodbye!");
   }
 });
 
