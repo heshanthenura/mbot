@@ -4,7 +4,7 @@ import { Connectors } from "shoukaku";
 const nodes = [
   {
     name: "main",
-    url: "localhost:2333",
+    url: "lavalink:2333",
     auth: "youshallnotpass",
     secure: false,
   },
