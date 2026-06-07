@@ -57,14 +57,63 @@ plugins:
     allowSearch: true
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
+    clientOptions:
+      MUSIC:
+        playback: false
+        playlistLoading: false
+        searching: true
+        videoLoading: false
+      TVHTML5_SIMPLY:
+        playback: true
+        playlistLoading: false
+        searching: false
+        videoLoading: true
+      TV:
+        playback: true
+        playlistLoading: false
+        searching: false
+        videoLoading: true
+      IOS:
+        playback: true
+        playlistLoading: false
+        searching: false
+        videoLoading: true
+      ANDROID:
+        playback: true
+        playlistLoading: false
+        searching: false
+        videoLoading: true
+      WEB:
+        playback: false
+        playlistLoading: true
+        searching: true
+        videoLoading: false
+      WEBEMBEDDED:
+        playback: false
+        playlistLoading: false
+        searching: false
+        videoLoading: false
     clients:
       - MUSIC
       - WEB
-      - ANDROID_VR
       - WEBEMBEDDED
+      - ANDROID
+      - IOS
+      - TV
+      - TVHTML5_SIMPLY
+
+    remoteCipher:
+      url: "https://cipher.kikkia.dev/"
+
     oauth:
       enabled: true
-      refreshToken: your token here
+      refreshToken: "your_token_here"
+      skipInitialization: false
+
+    proxy:
+      host: "127.0.0.1"
+      port: 40000
+
 metrics:
   prometheus:
     enabled: false
@@ -73,3 +122,10 @@ logging:
   level:
     root: INFO
     lavalink: INFO
+
+http:
+  proxy:
+    host: "127.0.0.1"
+    port: 40000
+    username: ""
+    password: ""
